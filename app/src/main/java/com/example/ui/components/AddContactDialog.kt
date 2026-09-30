@@ -1,8 +1,12 @@
 package com.example.ui.components
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +49,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.ui.theme.DarkBackground
 import com.example.ui.theme.DarkBorder
 import com.example.ui.theme.DarkSurface
@@ -68,44 +73,72 @@ fun AddContactDialog(
         contract = ActivityResultContracts.PickContact()
     ) { contactUri: Uri? ->
         if (contactUri != null) {
-            val cursor: Cursor? = context.contentResolver.query(
-                contactUri,
-                null,
-                null,
-                null,
-                null
-            )
-            cursor?.use { c ->
-                if (c.moveToFirst()) {
-                    val idCol = c.getColumnIndex(ContactsContract.Contacts._ID)
-                    val nameCol = c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
-                    val contactId = if (idCol != -1) c.getString(idCol) else null
-                    val contactName = if (nameCol != -1) c.getString(nameCol) else ""
-                    if (contactName.isNotBlank()) {
-                        name = contactName
-                    }
+            try {
+                val cursor: Cursor? = context.contentResolver.query(
+                    contactUri,
+                    null,
+                    null,
+                    null,
+                    null
+                )
+                cursor?.use { c ->
+                    if (c.moveToFirst()) {
+                        val idCol = c.getColumnIndex(ContactsContract.Contacts._ID)
+                        val nameCol = c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
+                        val contactId = if (idCol != -1) c.getString(idCol) else null
+                        val contactName = if (nameCol != -1) c.getString(nameCol) else ""
+                        if (contactName.isNotBlank()) {
+                            name = contactName
+                        }
 
-                    val hasPhoneCol = c.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)
-                    val hasPhone = if (hasPhoneCol != -1) c.getInt(hasPhoneCol) else 0
-                    if (hasPhone > 0 && contactId != null) {
-                        val pCursor: Cursor? = context.contentResolver.query(
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                            null,
-                            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-                            arrayOf(contactId),
-                            null
-                        )
-                        pCursor?.use { pc ->
-                            if (pc.moveToFirst()) {
-                                val pIndex = pc.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                                if (pIndex != -1) {
-                                    phone = pc.getString(pIndex)
+                        val hasPhoneCol = c.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)
+                        val hasPhone = if (hasPhoneCol != -1) c.getInt(hasPhoneCol) else 0
+                        if (hasPhone > 0 && contactId != null) {
+                            val pCursor: Cursor? = context.contentResolver.query(
+                                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                null,
+                                "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                                arrayOf(contactId),
+                                null
+                            )
+                            pCursor?.use { pc ->
+                                if (pc.moveToFirst()) {
+                                    val pIndex = pc.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                                    if (pIndex != -1) {
+                                        phone = pc.getString(pIndex)?.trim() ?: ""
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("AddContactDialog", "Error fetching contact details", e)
+                Toast.makeText(context, "Failed to read contact info", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    val contactPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            contactPickerLauncher.launch(null)
+        } else {
+            Toast.makeText(
+                context,
+                "Contacts permission is required to choose from phone contacts",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    val onPickContactClick = {
+        val permission = Manifest.permission.READ_CONTACTS
+        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            contactPickerLauncher.launch(null)
+        } else {
+            contactPermissionLauncher.launch(permission)
         }
     }
 
@@ -129,7 +162,7 @@ fun AddContactDialog(
             ) {
                 // Phonebook import button
                 OutlinedButton(
-                    onClick = { contactPickerLauncher.launch(null) },
+                    onClick = onPickContactClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("pick_contact_button"),

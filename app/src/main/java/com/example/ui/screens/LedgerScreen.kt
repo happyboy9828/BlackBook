@@ -216,11 +216,6 @@ fun LedgerScreen(
                             val msg = "Hi ${item.contact.name}, friendly reminder that $amountStr is pending. Please pay when you can. Thank you!"
                             SmsHelper.openWhatsApp(context, item.contact.phoneNumber, msg)
                         },
-                        onSmsClick = {
-                            val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(item.netBalance))}"
-                            val msg = "Hi ${item.contact.name}, friendly reminder that $amountStr is pending. Please pay when you can. Thank you!"
-                            SmsHelper.openDefaultSms(context, item.contact.phoneNumber, msg)
-                        },
                         onOpenReminder = {
                             reminderContact = item
                         }
@@ -441,7 +436,6 @@ private fun PersonLedgerCard(
     currencySymbol: String,
     onClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
-    onSmsClick: () -> Unit,
     onOpenReminder: () -> Unit
 ) {
     val net = item.netBalance
@@ -606,35 +600,6 @@ private fun PersonLedgerCard(
                                     text = "WhatsApp",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = WhatsAppGreen,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-
-                        // SMS option
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, GoldAccent.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                .clickable { onSmsClick() }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
-                                .testTag("sms_btn_${item.contact.id}"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Sms,
-                                    contentDescription = "SMS",
-                                    tint = GoldAccent,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "SMS",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = GoldAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
                                 )

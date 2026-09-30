@@ -167,15 +167,44 @@ fun ContactDetailScreen(
                         }
                     }
 
-                    IconButton(
-                        onClick = { showDeleteContactDialog = true },
-                        modifier = Modifier.testTag("delete_contact_button")
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = CrimsonRed
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (contact.phoneNumber.isNotBlank()) {
+                            IconButton(
+                                onClick = {
+                                    val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(net))}"
+                                    val msg = if (isYouWillGet) {
+                                        securityPrefs.formatTemplate(
+                                            securityPrefs.smsTemplate,
+                                            contact.name,
+                                            amountStr
+                                        )
+                                    } else if (isYouWillGive) {
+                                        "Hi ${contact.name}, ledger update: your balance is $amountStr. Thank you!"
+                                    } else {
+                                        "Hi ${contact.name}, your account balance is settled ($currencySymbol 0.00). Thank you!"
+                                    }
+                                    SmsHelper.openDefaultSms(context, contact.phoneNumber, msg)
+                                },
+                                modifier = Modifier.testTag("contact_detail_sms_header_btn")
+                            ) {
+                                Icon(
+                                    Icons.Default.Sms,
+                                    contentDescription = "Send SMS",
+                                    tint = GoldAccent
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { showDeleteContactDialog = true },
+                            modifier = Modifier.testTag("delete_contact_button")
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = CrimsonRed
+                            )
+                        }
                     }
                 }
             }
@@ -327,8 +356,8 @@ fun ContactDetailScreen(
                 }
             }
 
-            // Reminders Section (Only 2 options: WhatsApp and SMS)
-            if (isYouWillGet && contact.phoneNumber.isNotBlank()) {
+            // Reminders / SMS Section
+            if (contact.phoneNumber.isNotBlank()) {
                 item {
                     Column(
                         modifier = Modifier
@@ -339,7 +368,7 @@ fun ContactDetailScreen(
                             .padding(14.dp)
                     ) {
                         Text(
-                            text = "SEND PAYMENT REMINDER",
+                            text = if (isYouWillGet) "SEND PAYMENT REMINDER" else "SEND MESSAGE / SMS",
                             style = MaterialTheme.typography.labelSmall,
                             color = GoldAccent,
                             fontFamily = FontFamily.Monospace,
@@ -347,7 +376,11 @@ fun ContactDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Send a quick payment reminder to ${contact.name}:",
+                            text = if (isYouWillGet) {
+                                "Send a quick payment reminder to ${contact.name}:"
+                            } else {
+                                "Send an SMS or balance update to ${contact.name}:"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary,
                             fontSize = 12.sp
@@ -362,12 +395,16 @@ fun ContactDetailScreen(
                             // 1. WhatsApp Button
                             Button(
                                 onClick = {
-                                    val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", net)}"
-                                    val msg = securityPrefs.formatTemplate(
-                                        securityPrefs.whatsappTemplate,
-                                        contact.name,
-                                        amountStr
-                                    )
+                                    val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(net))}"
+                                    val msg = if (isYouWillGet) {
+                                        securityPrefs.formatTemplate(
+                                            securityPrefs.whatsappTemplate,
+                                            contact.name,
+                                            amountStr
+                                        )
+                                    } else {
+                                        "Hi ${contact.name}, your account balance is $amountStr. Thank you!"
+                                    }
                                     SmsHelper.openWhatsApp(context, contact.phoneNumber, msg)
                                 },
                                 modifier = Modifier
@@ -394,12 +431,18 @@ fun ContactDetailScreen(
                             // 2. SMS Button
                             Button(
                                 onClick = {
-                                    val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", net)}"
-                                    val msg = securityPrefs.formatTemplate(
-                                        securityPrefs.smsTemplate,
-                                        contact.name,
-                                        amountStr
-                                    )
+                                    val amountStr = "$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(net))}"
+                                    val msg = if (isYouWillGet) {
+                                        securityPrefs.formatTemplate(
+                                            securityPrefs.smsTemplate,
+                                            contact.name,
+                                            amountStr
+                                        )
+                                    } else if (isYouWillGive) {
+                                        "Hi ${contact.name}, ledger update: your balance is $amountStr. Thank you!"
+                                    } else {
+                                        "Hi ${contact.name}, your account balance is settled ($currencySymbol 0.00). Thank you!"
+                                    }
                                     SmsHelper.openDefaultSms(context, contact.phoneNumber, msg)
                                 },
                                 modifier = Modifier

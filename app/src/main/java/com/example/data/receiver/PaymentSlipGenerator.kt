@@ -39,11 +39,20 @@ object PaymentSlipGenerator {
         currencySymbol: String,
         businessName: String = "BLACKBOOK",
         headerTitle: String = "PAYMENT RECEIPT SLIP",
-        customNote: String = ""
+        customNote: String = "",
+        bankName: String = "",
+        accountNo: String = "",
+        accountTitle: String = ""
     ): Bitmap {
+        val hasBankDetails = bankName.isNotBlank() || accountNo.isNotBlank() || accountTitle.isNotBlank()
         val hasNote = customNote.isNotBlank()
         val width = 720
-        val height = if (hasNote) 850 else 760
+
+        var extraHeight = 0
+        if (hasBankDetails) extraHeight += 190
+        if (hasNote) extraHeight += 70
+
+        val height = 760 + extraHeight
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -185,6 +194,97 @@ object PaymentSlipGenerator {
         }
         canvas.drawText("STATUS: PENDING PAYMENT", (width / 2).toFloat(), 712f, statusTextPaint)
 
+        var currentY = 760f
+
+        // Online Payment / Bank Details Box
+        if (hasBankDetails) {
+            val bankBoxPaint = Paint().apply {
+                color = Color.parseColor("#141824")
+                style = Paint.Style.FILL
+            }
+            val bankBorderPaint = Paint().apply {
+                color = Color.parseColor("#D4AF37")
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+                isAntiAlias = true
+            }
+            val bankRect = RectF(64f, currentY, (width - 64).toFloat(), currentY + 165f)
+            canvas.drawRoundRect(bankRect, 18f, 18f, bankBoxPaint)
+            canvas.drawRoundRect(bankRect, 18f, 18f, bankBorderPaint)
+
+            // Header for Bank Box
+            val bankHeaderPaint = Paint().apply {
+                color = Color.parseColor("#D4AF37")
+                textSize = 17f
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText("💳 PAY ONLINE / BANK TRANSFER", 86f, currentY + 34f, bankHeaderPaint)
+
+            val dividerPaint = Paint().apply {
+                color = Color.parseColor("#2D3748")
+                strokeWidth = 1.5f
+            }
+            canvas.drawLine(86f, currentY + 48f, (width - 86).toFloat(), currentY + 48f, dividerPaint)
+
+            var lineY = currentY + 78f
+
+            if (bankName.isNotBlank()) {
+                val bankLabelPaint = Paint().apply {
+                    color = Color.parseColor("#9CA3AF")
+                    textSize = 16f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                    isAntiAlias = true
+                }
+                val bankValPaint = Paint().apply {
+                    color = Color.parseColor("#FFFFFF")
+                    textSize = 18f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                    isAntiAlias = true
+                }
+                canvas.drawText("Bank: ", 86f, lineY, bankLabelPaint)
+                canvas.drawText(bankName, 145f, lineY, bankValPaint)
+                lineY += 28f
+            }
+
+            if (accountTitle.isNotBlank()) {
+                val titleLabelPaint = Paint().apply {
+                    color = Color.parseColor("#9CA3AF")
+                    textSize = 16f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                    isAntiAlias = true
+                }
+                val titleValPaint = Paint().apply {
+                    color = Color.parseColor("#FFFFFF")
+                    textSize = 18f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                    isAntiAlias = true
+                }
+                canvas.drawText("Name: ", 86f, lineY, titleLabelPaint)
+                canvas.drawText(accountTitle, 148f, lineY, titleValPaint)
+                lineY += 30f
+            }
+
+            if (accountNo.isNotBlank()) {
+                val accLabelPaint = Paint().apply {
+                    color = Color.parseColor("#9CA3AF")
+                    textSize = 16f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                    isAntiAlias = true
+                }
+                val accValPaint = Paint().apply {
+                    color = Color.parseColor("#00E676")
+                    textSize = 21f
+                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    isAntiAlias = true
+                }
+                canvas.drawText("A/C: ", 86f, lineY, accLabelPaint)
+                canvas.drawText(accountNo, 135f, lineY, accValPaint)
+            }
+
+            currentY += 185f
+        }
+
         // Optional Custom Note if configured by user
         if (hasNote) {
             val notePaint = Paint().apply {
@@ -194,7 +294,7 @@ object PaymentSlipGenerator {
                 textAlign = Paint.Align.CENTER
                 isAntiAlias = true
             }
-            canvas.drawText(customNote, (width / 2).toFloat(), 795f, notePaint)
+            canvas.drawText(customNote, (width / 2).toFloat(), currentY + 35f, notePaint)
         }
 
         return bitmap
@@ -210,6 +310,9 @@ object PaymentSlipGenerator {
         headerTitle: String? = null,
         customNote: String? = null,
         captionTemplate: String? = null,
+        bankName: String? = null,
+        accountNo: String? = null,
+        accountTitle: String? = null,
         targetWhatsAppOnly: Boolean = true
     ) {
         try {
@@ -218,6 +321,9 @@ object PaymentSlipGenerator {
             val finalHeader = headerTitle ?: securityPrefs.slipHeaderTitle
             val finalNote = customNote ?: securityPrefs.slipNote
             val finalCaptionTemplate = captionTemplate ?: securityPrefs.slipCaption
+            val finalBankName = bankName ?: securityPrefs.slipBankName
+            val finalAccountNo = accountNo ?: securityPrefs.slipAccountNo
+            val finalAccountTitle = accountTitle ?: securityPrefs.slipAccountTitle
 
             val bitmap = generateSlipBitmap(
                 context = context,
@@ -227,7 +333,10 @@ object PaymentSlipGenerator {
                 currencySymbol = currencySymbol,
                 businessName = finalBusiness,
                 headerTitle = finalHeader,
-                customNote = finalNote
+                customNote = finalNote,
+                bankName = finalBankName,
+                accountNo = finalAccountNo,
+                accountTitle = finalAccountTitle
             )
 
             val cachePath = File(context.cacheDir, "receipts")
@@ -245,7 +354,17 @@ object PaymentSlipGenerator {
             )
 
             val formattedAmount = "$currencySymbol${String.format(Locale.US, "%.2f", amount)}"
-            val caption = securityPrefs.formatTemplate(finalCaptionTemplate, contactName, formattedAmount)
+            var caption = securityPrefs.formatTemplate(finalCaptionTemplate, contactName, formattedAmount)
+
+            if (finalAccountNo.isNotBlank() && !caption.contains(finalAccountNo)) {
+                val bankDetailsText = buildString {
+                    append("\n\n💳 Pay Online:")
+                    if (finalBankName.isNotBlank()) append("\nBank: $finalBankName")
+                    if (finalAccountTitle.isNotBlank()) append("\nA/C Title: $finalAccountTitle")
+                    append("\nA/C No: $finalAccountNo")
+                }
+                caption += bankDetailsText
+            }
 
             val cleanPhone = formatPhoneNumberForWhatsApp(phoneNumber)
             val jid = if (cleanPhone.isNotBlank()) "$cleanPhone@s.whatsapp.net" else null

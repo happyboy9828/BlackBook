@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,6 +59,7 @@ import com.example.data.receiver.PaymentSlipGenerator
 import com.example.data.receiver.SmsHelper
 import com.example.data.repository.SecurityPreferences
 import com.example.ui.components.AddTransactionDialog
+import com.example.ui.components.PaySlipTemplateDialog
 import com.example.ui.components.SendReminderDialog
 import com.example.ui.theme.CrimsonRed
 import com.example.ui.theme.DarkBackground
@@ -113,6 +115,7 @@ fun ContactDetailScreen(
     var showReminderDialog by remember { mutableStateOf(false) }
     var showSettleConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteContactDialog by remember { mutableStateOf(false) }
+    var showSlipTemplateDialog by remember { mutableStateOf(false) }
 
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault()) }
 
@@ -470,36 +473,75 @@ fun ContactDetailScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 3. Send Payment Slip Image on WhatsApp
-                        Button(
-                            onClick = {
-                                PaymentSlipGenerator.sharePaymentSlip(
-                                    context = context,
-                                    contactName = contact.name,
-                                    phoneNumber = contact.phoneNumber,
-                                    amount = net,
-                                    currencySymbol = currencySymbol,
-                                    targetWhatsAppOnly = true
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("remind_whatsapp_image_btn"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = EmeraldGreen,
-                                contentColor = DarkBackground
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                            shape = RoundedCornerShape(8.dp)
+                        // 3. Send Payment Slip Image on WhatsApp with Template Customizer
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Button(
+                                onClick = {
+                                    PaymentSlipGenerator.sharePaymentSlip(
+                                        context = context,
+                                        contactName = contact.name,
+                                        phoneNumber = contact.phoneNumber,
+                                        amount = net,
+                                        currencySymbol = currencySymbol,
+                                        targetWhatsAppOnly = true
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("remind_whatsapp_image_btn"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = EmeraldGreen,
+                                    contentColor = DarkBackground
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "SEND SLIP (WHATSAPP)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+
+                            Button(
+                                onClick = { showSlipTemplateDialog = true },
+                                modifier = Modifier.testTag("customize_slip_btn"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = DarkSurfaceElevated,
+                                    contentColor = GoldAccent
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Tune, contentDescription = "Edit Slip", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "SLIP INFO",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        if (securityPrefs.slipBankName.isNotBlank() || securityPrefs.slipAccountNo.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "SEND SLIP ON WHATSAPP",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                softWrap = false
+                                text = "💳 Includes online pay: ${securityPrefs.slipBankName} - ${securityPrefs.slipAccountNo}" +
+                                        if (securityPrefs.slipAccountTitle.isNotBlank()) " (${securityPrefs.slipAccountTitle})" else "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = EmeraldGreen,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace
                             )
                         }
                     }
@@ -686,6 +728,13 @@ fun ContactDetailScreen(
                         Text("Cancel", color = TextSecondary)
                     }
                 }
+            )
+        }
+
+        if (showSlipTemplateDialog) {
+            PaySlipTemplateDialog(
+                securityPrefs = securityPrefs,
+                onDismiss = { showSlipTemplateDialog = false }
             )
         }
     }

@@ -32,6 +32,9 @@ class SecurityPreferences(context: Context) {
         private const val KEY_SLIP_HEADER_TITLE = "slip_header_title"
         private const val KEY_SLIP_NOTE = "slip_note"
         private const val KEY_SLIP_CAPTION = "slip_caption"
+        private const val KEY_SLIP_BANK_NAME = "slip_bank_name"
+        private const val KEY_SLIP_ACCOUNT_NO = "slip_account_no"
+        private const val KEY_SLIP_ACCOUNT_TITLE = "slip_account_title"
 
         const val DEFAULT_SLIP_BUSINESS_NAME = "BLACKBOOK"
         const val DEFAULT_SLIP_HEADER_TITLE = "PAYMENT RECEIPT SLIP"
@@ -64,12 +67,32 @@ class SecurityPreferences(context: Context) {
         get() = prefs.getString(KEY_SLIP_CAPTION, DEFAULT_SLIP_CAPTION) ?: DEFAULT_SLIP_CAPTION
         set(value) = prefs.edit().putString(KEY_SLIP_CAPTION, value).apply()
 
+    var slipBankName: String
+        get() = prefs.getString(KEY_SLIP_BANK_NAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SLIP_BANK_NAME, value).apply()
+
+    var slipAccountNo: String
+        get() = prefs.getString(KEY_SLIP_ACCOUNT_NO, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SLIP_ACCOUNT_NO, value).apply()
+
+    var slipAccountTitle: String
+        get() = prefs.getString(KEY_SLIP_ACCOUNT_TITLE, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SLIP_ACCOUNT_TITLE, value).apply()
+
     fun formatTemplate(template: String, name: String, amountFormatted: String): String {
         return template
             .replace("{name}", name, ignoreCase = true)
             .replace("[name]", name, ignoreCase = true)
             .replace("{amount}", amountFormatted, ignoreCase = true)
             .replace("[amount]", amountFormatted, ignoreCase = true)
+            .replace("{bank_name}", slipBankName, ignoreCase = true)
+            .replace("[bank_name]", slipBankName, ignoreCase = true)
+            .replace("{account_no}", slipAccountNo, ignoreCase = true)
+            .replace("[account_no]", slipAccountNo, ignoreCase = true)
+            .replace("{account_title}", slipAccountTitle, ignoreCase = true)
+            .replace("[account_title]", slipAccountTitle, ignoreCase = true)
+            .replace("{user_name}", slipAccountTitle, ignoreCase = true)
+            .replace("[user_name]", slipAccountTitle, ignoreCase = true)
     }
 
     var pin: String

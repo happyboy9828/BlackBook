@@ -25,9 +25,11 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Warning
+import com.example.ui.components.PaySlipTemplateDialog
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -86,6 +88,7 @@ fun VaultSettingsScreen(
     var showBurnConfirmDialog by remember { mutableStateOf(false) }
     var showWhatsAppTemplateDialog by remember { mutableStateOf(false) }
     var showSmsTemplateDialog by remember { mutableStateOf(false) }
+    var showSlipTemplateDialog by remember { mutableStateOf(false) }
 
     val currencies = listOf("Rs ", "₨", "PKR", "$", "AED", "SAR", "€", "£")
 
@@ -453,6 +456,71 @@ fun VaultSettingsScreen(
                 }
             }
 
+            // Pay Slip Template & Online Bank Info Card
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(DarkSurface)
+                        .border(1.dp, DarkBorder, RoundedCornerShape(10.dp))
+                        .clickable { showSlipTemplateDialog = true }
+                        .padding(14.dp)
+                        .testTag("edit_slip_template_item")
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Receipt, contentDescription = null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Pay Slip Template",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = TextPrimary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${securityPrefs.slipBusinessName} · ${securityPrefs.slipHeaderTitle}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = GoldAccent,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "EDIT",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = EmeraldGreen,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (securityPrefs.slipBankName.isNotBlank() || securityPrefs.slipAccountNo.isNotBlank()) {
+                            Text(
+                                text = "💳 Online Pay: ${securityPrefs.slipBankName} - ${securityPrefs.slipAccountNo}" +
+                                        if (securityPrefs.slipAccountTitle.isNotBlank()) " (${securityPrefs.slipAccountTitle})" else "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = EmeraldGreen,
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        } else {
+                            Text(
+                                text = "Online payment details: Not set (optional)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+
             // Delete & Clear All Data Section
             item {
                 Text(
@@ -565,6 +633,13 @@ fun VaultSettingsScreen(
                     Toast.makeText(context, "SMS template saved", Toast.LENGTH_SHORT).show()
                     showSmsTemplateDialog = false
                 }
+            )
+        }
+
+        if (showSlipTemplateDialog) {
+            PaySlipTemplateDialog(
+                securityPrefs = securityPrefs,
+                onDismiss = { showSlipTemplateDialog = false }
             )
         }
 
